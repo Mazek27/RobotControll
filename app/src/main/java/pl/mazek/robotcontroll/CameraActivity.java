@@ -2,8 +2,11 @@ package pl.mazek.robotcontroll;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
@@ -19,13 +22,16 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
 import android.media.ImageReader;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -41,6 +47,8 @@ import java.util.List;
 
 public class CameraActivity extends Activity {
 
+    protected boolean clicked;
+    protected Button captureButton;
     protected ImageReader imageReader;
     protected TextureView mTextureView;
     protected Size mPreviewSize;
@@ -93,6 +101,9 @@ public class CameraActivity extends Activity {
             };
     protected HandlerThread mBackgroundThread;
     protected Handler mBackgroundHandler;
+
+    protected HandlerThread mAnaliseThread;
+    protected Handler mAnaliseHandler;
     protected static final int STATE_PREVIEW = 0;
     protected static final int STATE_WAIT_LOCK = 1;
     protected int mState;
@@ -111,11 +122,11 @@ public class CameraActivity extends Activity {
                             //Puste pole
                             break;
                         case STATE_WAIT_LOCK:
-                            Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
-                            if (afState == CaptureRequest.CONTROL_AF_STATE_FOCUSED_LOCKED) {
-                                unlockFocus();
-                                Toast.makeText(getApplicationContext(), "Focus Lock Succesfull", Toast.LENGTH_SHORT).show();
-                            }
+//                            Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+//                            if (afState == CaptureRequest.CONTROL_AF_STATE_FOCUSED_LOCKED) {
+                            unlockFocus();
+//                                Toast.makeText(getApplicationContext(), "Focus Lock Succesfull", Toast.LENGTH_SHORT).show();
+//                            }
                             break;
                     }
                 }
@@ -128,14 +139,20 @@ public class CameraActivity extends Activity {
                 @Override
                 public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
                     super.onCaptureCompleted(session, request, result);
-
+                    if (clicked) {
+                        //mBackgroundHandler.post(new ImageSaver(mTextureView.getBitmap()));
+                        clicked = false;
+                        Log.d("Button", clicked ? "true" : "false");
+                    }
                     process(result);
                 }
 
                 @Override
                 public void onCaptureFailed(CameraCaptureSession session, CaptureRequest request, CaptureFailure failure) {
                     super.onCaptureFailed(session, request, failure);
-                    Toast.makeText(getApplicationContext(), "Focus Lock Unsuccesfull", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getApplicationContext(), "Focus Lock Unsuccesfull", Toast.LENGTH_SHORT).show();
+
+                    Log.i("oCF", String.valueOf(failure.getFrameNumber()));
 
                 }
             };
@@ -147,6 +164,7 @@ public class CameraActivity extends Activity {
                     Log.d("TAG: ", "The onImageAvailable thread id: " + Thread.currentThread().getId());
                     //Toast.makeText(getApplicationContext(), "Available", Toast.LENGTH_SHORT).show();
                     //mBackgroundHandler.post(new ImageSaver(reader.acquireLatestImage()));
+
                 }
             };
 
@@ -184,28 +202,45 @@ public class CameraActivity extends Activity {
                 //mOnImageAvailableListener
 //
                 mCameraId = cameraId;
+                //cameraManager.setTorchMode(mCameraId, true);
                 return;
             }
         } catch (CameraAccessException e) {
             e.printStackTrace();
+            Log.d("SC", e.getMessage());
         }
     }
 
     protected void openCamera() {
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
-            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+//            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+//                // TODO: Consider calling
+//                //    Activity#requestPermissions
+//                // here to request the missing permissions, and then overriding
+//                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//                //                                          int[] grantResults)
+//                // to handle the case where the user grants the permission. See the documentation
+//                // for Activity#requestPermissions for more details.
+////                AlertDialog alert = new AlertDialog.Builder(this).create();
+////
+////                alert.setTitle("Uprawnienia");
+////                alert.setMessage("Kliknij ok");
+//                return;
+//            }
+            //cameraManager.setTorchMode(mCameraId, true);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
-                //    Activity#requestPermissions
+                //    ActivityCompat#requestPermissions
                 // here to request the missing permissions, and then overriding
                 //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
                 //                                          int[] grantResults)
                 // to handle the case where the user grants the permission. See the documentation
-                // for Activity#requestPermissions for more details.
+                // for ActivityCompat#requestPermissions for more details.
                 return;
             }
-
             cameraManager.openCamera(mCameraId, mCameraDeviceStateCallback, mBackgroundHandler);
+
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -252,13 +287,15 @@ public class CameraActivity extends Activity {
             surfaceTexture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
             Surface previewSurface = new Surface(surfaceTexture);
             mPreviewCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            mPreviewCaptureRequestBuilder.addTarget(imageReader.getSurface());
+            //mPreviewCaptureRequestBuilder.addTarget(imageReader.getSurface());
             mPreviewCaptureRequestBuilder.addTarget(previewSurface);
 
             //mPreviewCaptureRequestBuilder.addTarget(imageReader.getSurface());
             mPreviewCaptureRequestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_TORCH);
+            //mPreviewCaptureRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, (float) 1.0);
+            //,imageReader.getSurface()
 
-            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface,imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
+            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface), new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(CameraCaptureSession session) {
                     if (mCameraDevice == null) {
@@ -284,6 +321,7 @@ public class CameraActivity extends Activity {
             },null);
 
         } catch (CameraAccessException e) {
+            System.out.println("ErrorCamera");
             e.printStackTrace();
         }
     }
@@ -300,6 +338,23 @@ public class CameraActivity extends Activity {
             mBackgroundThread.join();
             mBackgroundThread = null;
             mBackgroundHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void openAnaliseThread(Image image) {
+        mAnaliseThread = new HandlerThread("Camera background thread");
+        mAnaliseThread.start();
+        mAnaliseHandler = new Handler(mAnaliseThread.getLooper());
+    }
+
+    protected void closeAnaliseThread() {
+        mAnaliseThread.quitSafely();
+        try {
+            mAnaliseThread.join();
+            mAnaliseThread = null;
+            mAnaliseHandler = null;
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -327,6 +382,73 @@ public class CameraActivity extends Activity {
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
+    }
+
+    public int[] getColors(Bitmap bitmap){
+        int[] color = new int[9];
+        color[0] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.05*bitmap.getHeight()));
+        color[1] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.05*bitmap.getHeight()));
+        color[2] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.05*bitmap.getHeight()));
+        color[3] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.5 *bitmap.getHeight()));
+        color[4] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.5 *bitmap.getHeight()));
+        color[5] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.5 *bitmap.getHeight()));
+        color[6] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.95*bitmap.getHeight()));
+        color[7] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.95*bitmap.getHeight()));
+        color[8] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.95*bitmap.getHeight()));
+
+        return  color;
+    }
+
+    private int avgColor(Bitmap bitmap, int x, int y){
+        int[] pixels = new int[30*30];
+        float[] hsv = new float[3];
+        int sum= 0;
+        bitmap.getPixels(pixels, 0, 30, x-15, y -15, 30, 30);
+        for (int pixel : pixels) {
+            Color.RGBToHSV(Color.red(pixel), Color.green(pixel), Color.blue(pixel), hsv);
+            sum += hsv[0];
+
+        }
+        hsv[0] = sum/pixels.length;
+
+        //RED
+        if((hsv[0]>0 && hsv[0]<10) ||(hsv[0]>350 && hsv[0]<=360) && hsv[1] > 0.3){
+            hsv[0] = 3;
+            hsv[1] = 1;
+            hsv[2] = (float) 0.5;
+        } else
+        //BLUE
+        if((hsv[0]>215 && hsv[0]<240) && hsv[1] > 0.3){
+            hsv[0] = 240;
+            hsv[1] = 1;
+            hsv[2] = (float) 0.5;
+        }else
+        //GREEN
+        if((hsv[0]>75 && hsv[0]<140) && hsv[1] > 0.3){
+            hsv[0] = 92;
+            hsv[1] = 1;
+            hsv[2] = (float) 0.5;
+        }else
+        //YELLOW
+        if((hsv[0]>50 && hsv[0]<65) && hsv[1] > 0.3){
+            hsv[0] = 60;
+            hsv[1] = 1;
+            hsv[2] = (float) 0.5;
+        }else
+        //ORANGE
+        if((hsv[0]>20 && hsv[0]<40) && hsv[1] > 0.3){
+            hsv[0] = 30;
+            hsv[1] = 1;
+            hsv[2] = (float) 0.5;
+        }else
+        if(hsv[1] < 0.3){
+            hsv[1] = 0;
+            hsv[2] = 1;
+        } else {
+            hsv[1] = 1;
+            hsv[2] = 1;
+        }
+        return Color.HSVToColor(hsv);
     }
 
 

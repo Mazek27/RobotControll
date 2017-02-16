@@ -3,11 +3,13 @@ package pl.mazek.robotcontroll;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Camera;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -42,6 +44,7 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
 import android.widget.Toolbar;
@@ -72,8 +75,9 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
         ORIENTATIONS.append(Surface.ROTATION_270, 180);
     }
 
-    private boolean analiseButtonPressed = false;
-    private Button analiseButton;
+    private int countClick = 0;
+    private ImageView[] imageView;
+    private GridLayout gridLayout;
 
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
@@ -86,6 +90,74 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_intent);
+        gridLayout = (GridLayout) findViewById(R.id.gridLayout);
+        imageView = new ImageView[54];
+        int i=0, x, y;
+        char[] mChar = {'F','R','B','L','D','U'};
+        int r=0,c=0;
+        for (char ch: mChar) {
+            x=0;
+            y=0;
+            switch (ch){
+                case 'U': {
+                    r = 0;
+                    c = 4;
+                }
+                break;
+                case 'R':{
+                    r = 3;
+                    c = 7;
+                }
+                break;
+                case 'F':{
+                    r = 3;
+                    c = 4;
+                }
+                break;
+                case 'D':{
+                    r = 6;
+                    c = 4;
+                }
+                break;
+                case 'L':{
+                    r = 3;
+                    c = 1;
+                }
+                break;
+                case 'B':{
+                    r = 3;
+                    c = 10;
+                }
+                break;
+            }
+            for(int j=1; j<10; j++){
+
+                GridLayout.LayoutParams gl = new GridLayout.LayoutParams();
+                gl.columnSpec = GridLayout.spec(c+x);
+                gl.rowSpec = GridLayout.spec(r+y);
+                gl.width = 30;
+                gl.height = 30;
+                imageView[i] = new ImageView(this);
+                imageView[i].setTag(ch + j);
+                imageView[i].setLayoutParams(gl);
+                imageView[i].setBackgroundColor(Color.rgb(255,0,0));
+                gridLayout.addView(imageView[i]);
+
+                if(j%3 == 0){
+                    y++;
+                }
+                if(x==2){
+                    x = 0;
+                } else {
+                    x++;
+                }
+                i++;
+            }
+        }
+
+
+        captureButton = (Button) findViewById(R.id.analiseButton);
+        captureButton.setOnClickListener(buttonOnClickListener);
 
         leftColor = (ImageView) findViewById(R.id.leftColor);
         mTextureView = (TextureView) findViewById(R.id.textureView);
@@ -97,6 +169,26 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
+
+    private Button.OnClickListener buttonOnClickListener = new Button.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            clicked = true;
+            lockFocus();
+            Bitmap mBitmap = mTextureView.getBitmap();
+            int[] color = getColors(mBitmap);
+            int start = countClick == 0 ? 0 : countClick * 8 +countClick;
+            int index = 0;
+            for(int i=start; i<start+8+1; i++){
+                imageView[i].setBackgroundColor(color[index]);
+                index++;
+            }
+
+//            captureButton.setText(String.valueOf(hsv[0]));
+            Log.d("Button", clicked ? "true" : "false");
+            countClick++;
+        }
+    };
 
     @Override
     protected void onResume() {
@@ -205,7 +297,8 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
 //                jpegSizes = mCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.JPEG);
 //            int width = 640;
 //            int height = 480;
-//            if(jpegSizes != null && 0< jpegSizes.length){
+//            if(jpegSizes != null && 0< jpegSizes.length){Readee
+
 //                width = jpegSizes[0].getWidth();
 //                height = jpegSizes[0].getHeight();
 //            }

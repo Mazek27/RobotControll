@@ -33,7 +33,10 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import org.opencv.core.Mat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -196,9 +199,9 @@ public class CameraActivity extends Activity {
                 imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
                     @Override
                     public void onImageAvailable(ImageReader reader) {
-
+                        Log.i("onImageAvailable", "capture");
                     }
-                }, null);
+                }, mAnaliseHandler);
                 //mOnImageAvailableListener
 //
                 mCameraId = cameraId;
@@ -214,22 +217,7 @@ public class CameraActivity extends Activity {
     protected void openCamera() {
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
-//            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-//                // TODO: Consider calling
-//                //    Activity#requestPermissions
-//                // here to request the missing permissions, and then overriding
-//                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-//                //                                          int[] grantResults)
-//                // to handle the case where the user grants the permission. See the documentation
-//                // for Activity#requestPermissions for more details.
-////                AlertDialog alert = new AlertDialog.Builder(this).create();
-////
-////                alert.setTitle("Uprawnienia");
-////                alert.setMessage("Kliknij ok");
-//                return;
-//            }
-            //cameraManager.setTorchMode(mCameraId, true);
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
                 // here to request the missing permissions, and then overriding
@@ -287,22 +275,18 @@ public class CameraActivity extends Activity {
             surfaceTexture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
             Surface previewSurface = new Surface(surfaceTexture);
             mPreviewCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            //mPreviewCaptureRequestBuilder.addTarget(imageReader.getSurface());
             mPreviewCaptureRequestBuilder.addTarget(previewSurface);
 
-            //mPreviewCaptureRequestBuilder.addTarget(imageReader.getSurface());
             mPreviewCaptureRequestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_TORCH);
-            //mPreviewCaptureRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, (float) 1.0);
-            //,imageReader.getSurface()
 
-            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface), new CameraCaptureSession.StateCallback() {
-                @Override
-                public void onConfigured(CameraCaptureSession session) {
-                    if (mCameraDevice == null) {
-                        return;
-                    }
-                    try {
-                        mPreviewCaptureRequest = mPreviewCaptureRequestBuilder.build();
+                        mCameraDevice.createCaptureSession(Arrays.asList(previewSurface), new CameraCaptureSession.StateCallback() {
+                            @Override
+                            public void onConfigured(CameraCaptureSession session) {
+                                if (mCameraDevice == null) {
+                                    return;
+                                }
+                                try {
+                                    mPreviewCaptureRequest = mPreviewCaptureRequestBuilder.build();
                         mCameraCaptureSession = session;
                         mCameraCaptureSession.setRepeatingRequest(
                                 mPreviewCaptureRequest,
@@ -343,7 +327,7 @@ public class CameraActivity extends Activity {
         }
     }
 
-    protected void openAnaliseThread(Image image) {
+    protected void openAnaliseThread() {
         mAnaliseThread = new HandlerThread("Camera background thread");
         mAnaliseThread.start();
         mAnaliseHandler = new Handler(mAnaliseThread.getLooper());
@@ -386,20 +370,20 @@ public class CameraActivity extends Activity {
 
     public int[] getColors(Bitmap bitmap){
         int[] color = new int[9];
-        color[0] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.05*bitmap.getHeight()));
-        color[1] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.05*bitmap.getHeight()));
-        color[2] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.05*bitmap.getHeight()));
-        color[3] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.5 *bitmap.getHeight()));
-        color[4] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.5 *bitmap.getHeight()));
-        color[5] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.5 *bitmap.getHeight()));
-        color[6] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.95*bitmap.getHeight()));
-        color[7] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.95*bitmap.getHeight()));
-        color[8] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.95*bitmap.getHeight()));
+        color[0] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.05*bitmap.getHeight()), (TextView) findViewById(R.id.textView1));
+        color[1] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.05*bitmap.getHeight()), (TextView) findViewById(R.id.textView2));
+        color[2] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.05*bitmap.getHeight()), (TextView) findViewById(R.id.textView3));
+        color[3] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.5 *bitmap.getHeight()), (TextView) findViewById(R.id.textView4));
+        color[4] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.5 *bitmap.getHeight()), (TextView) findViewById(R.id.textView5));
+        color[5] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.5 *bitmap.getHeight()), (TextView) findViewById(R.id.textView6));
+        color[6] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.95*bitmap.getHeight()), (TextView) findViewById(R.id.textView7));
+        color[7] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.95*bitmap.getHeight()), (TextView) findViewById(R.id.textView8));
+        color[8] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.95*bitmap.getHeight()), (TextView) findViewById(R.id.textView9));
 
         return  color;
     }
 
-    private int avgColor(Bitmap bitmap, int x, int y){
+    private int avgColor(Bitmap bitmap, int x, int y, TextView textView){
         int[] pixels = new int[30*30];
         float[] hsv = new float[3];
         int sum= 0;
@@ -412,42 +396,80 @@ public class CameraActivity extends Activity {
         hsv[0] = sum/pixels.length;
 
         //RED
-        if((hsv[0]>0 && hsv[0]<10) ||(hsv[0]>350 && hsv[0]<=360) && hsv[1] > 0.3){
+        if((hsv[0]>0 && hsv[0]<10) ||(hsv[0]>290 && hsv[0]<=360) && hsv[1] > 0.7){
+            textView.setText("RED " +
+                    hsv[0] + " " +
+                    String.format("%.2g", hsv[1]) + " " +
+                    String.format("%.2g", hsv[2]));
             hsv[0] = 3;
             hsv[1] = 1;
-            hsv[2] = (float) 0.5;
+            hsv[2] = 1;
+
+            return Color.HSVToColor(hsv);
         } else
         //BLUE
-        if((hsv[0]>215 && hsv[0]<240) && hsv[1] > 0.3){
+        if((hsv[0]>180 && hsv[0]<255) && hsv[1] > 0.3){
+            textView.setText("BLUE " +
+                    hsv[0] + " " +
+                    String.format("%.2g", hsv[1]) + " " +
+                    String.format("%.2g", hsv[2]));
             hsv[0] = 240;
             hsv[1] = 1;
-            hsv[2] = (float) 0.5;
+            hsv[2] = 1;
+
+            return Color.HSVToColor(hsv);
         }else
         //GREEN
-        if((hsv[0]>75 && hsv[0]<140) && hsv[1] > 0.3){
-            hsv[0] = 92;
+        if((hsv[0]>70 && hsv[0]<150) && hsv[1] > 0.3){
+            textView.setText("GREEN " +
+                    hsv[0] + " " +
+                    String.format("%.2g", hsv[1]) + " " +
+                    String.format("%.2g", hsv[2]));
+            hsv[0] = 120;
             hsv[1] = 1;
-            hsv[2] = (float) 0.5;
+            hsv[2] = 1;
+
+            return Color.HSVToColor(hsv);
         }else
         //YELLOW
-        if((hsv[0]>50 && hsv[0]<65) && hsv[1] > 0.3){
+        if((hsv[0]>45 && hsv[0]<68) && hsv[1] > 0.3){
+            textView.setText("YELLOW " +
+                    hsv[0] + " " +
+                    String.format("%.2g", hsv[1]) + " " +
+                    String.format("%.2g", hsv[2]));
             hsv[0] = 60;
             hsv[1] = 1;
-            hsv[2] = (float) 0.5;
+            hsv[2] = 1;
+
+            return Color.HSVToColor(hsv);
         }else
         //ORANGE
-        if((hsv[0]>20 && hsv[0]<40) && hsv[1] > 0.3){
+        if((hsv[0]>11 && hsv[0]<45) && hsv[1] > 0.3){
+            textView.setText("ORANGE " +
+                    hsv[0] + " " +
+                    String.format("%.2g", hsv[1]) + " " +
+                    String.format("%.2g", hsv[2]));
             hsv[0] = 30;
             hsv[1] = 1;
-            hsv[2] = (float) 0.5;
+            hsv[2] = 1;
+
+            return Color.HSVToColor(hsv);
         }else
-        if(hsv[1] < 0.3){
+        if(hsv[1] < 0.15 && hsv[2] > 0.65) {
+            textView.setText("WHITE " +
+                    hsv[0] + " " +
+                    String.format("%.2g", hsv[1]) + " " +
+                    String.format("%.2g", hsv[2]));
+            hsv[0] = 0;
             hsv[1] = 0;
             hsv[2] = 1;
-        } else {
-            hsv[1] = 1;
-            hsv[2] = 1;
+
+            return Color.HSVToColor(hsv);
         }
+//        } else {
+//            hsv[1] = 1;
+//            hsv[2] = 1;
+//        }
         return Color.HSVToColor(hsv);
     }
 

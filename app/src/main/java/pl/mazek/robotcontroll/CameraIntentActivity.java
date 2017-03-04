@@ -12,6 +12,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.ImageFormat;
+import android.graphics.Paint;
 import android.graphics.SurfaceTexture;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -54,6 +55,17 @@ import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint3;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -84,6 +96,23 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    Log.i("OpenCV", "OpenCV loaded successfully");
+                    Mat imageMat=new Mat();
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
 
 
     @Override
@@ -176,6 +205,9 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
             clicked = true;
             lockFocus();
             Bitmap mBitmap = mTextureView.getBitmap();
+
+
+
             int[] color = getColors(mBitmap);
             int start = countClick == 0 ? 0 : countClick * 8 +countClick;
             int index = 0;
@@ -195,7 +227,16 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
         super.onResume();
         mSensorManager.registerListener(this, mProximity, SensorManager.SENSOR_DELAY_NORMAL);
 
+        if (!OpenCVLoader.initDebug()) {
+            Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
+        } else {
+            Log.d("OpenCV", "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
+
         openBackgroundThread();
+        openAnaliseThread();
         if (mTextureView.isAvailable()) {
             setupCamera(mTextureView.getWidth(), mTextureView.getHeight());
             openCamera();
@@ -210,6 +251,7 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
 
         closeCamera();
         closeBackgroundThread();
+        closeAnaliseThread();
         super.onPause();
     }
 
@@ -219,7 +261,7 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.values[0] > 0) {
+        if (event.values[0] > 0 && countClick < 6) {
             Random rnd = new Random();
             int choose = rnd.nextInt(4) + 1;
             switch (choose) {
@@ -243,6 +285,7 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
         } else {
             leftColor.setBackgroundResource(R.drawable.white);
         }
+
     }
 
     @Override
@@ -286,107 +329,3 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
         client.disconnect();
     }
 }
-
-
-//        CameraManager mManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-//        try{
-//
-//            CameraCharacteristics mCharacteristics = mManager.getCameraCharacteristics(mCameraId);
-//            Size[] jpegSizes = null;
-//            if(mCharacteristics != null)
-//                jpegSizes = mCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.JPEG);
-//            int width = 640;
-//            int height = 480;
-//            if(jpegSizes != null && 0< jpegSizes.length){Readee
-
-//                width = jpegSizes[0].getWidth();
-//                height = jpegSizes[0].getHeight();
-//            }
-//            ImageReader reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
-//            List<Surface> outputSurface = new ArrayList<>(2);
-//            outputSurface.add(reader.getSurface());
-//            outputSurface.add(new Surface(mTextureView.getSurfaceTexture()));
-//            final CaptureRequest.Builder captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-//            captureBuilder.addTarget(reader.getSurface());
-//            captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-//
-//            int rotation = getWindowManager().getDefaultDisplay().getRotation();
-//            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-//
-//            reader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-//                @Override
-//                public void onImageAvailable(ImageReader reader) {
-//                    Toast.makeText(getApplicationContext(), "Click analisePreviewShot", Toast.LENGTH_SHORT).show();
-//                    Image image = null;
-//                    Toast.makeText(getApplicationContext(), "create buffer", Toast.LENGTH_LONG).show();
-//                    try{
-//                        image = reader.acquireLatestImage();
-//                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-//                        Toast.makeText(getApplicationContext(), String.format("%d %d %d", buffer.get(0),buffer.get(1),buffer.get(2) ), Toast.LENGTH_SHORT).show();
-//                        if(buffer != null){
-//                            Toast.makeText(getApplicationContext(), "create buffer", Toast.LENGTH_LONG).show();
-//                        }
-//                    } finally {
-//                        if(image != null)
-//                            image.close();
-//                    }
-//                }
-//            }, null);
-
-
-        //mCameraCaptureSession.capture(captureBuilder.build(), captureCallback, null);
-//
-//        } catch (Exception e){
-//            e.printStackTrace();
-//        }
-
-
-
-
-
-
-
-
-//imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-//                    @Override
-//                    public void onImageAvailable(ImageReader reader) {
-//                        Bitmap bitmap = null;
-//                        Image img = null;
-//                            img = reader.acquireLatestImage();
-//                            if(img != null){
-//                                Image.Plane[] planes = img.getPlanes();
-//                                if(planes[0].getBuffer() == null){
-//                                    return;
-//                                } else {
-//                                    int width = img.getWidth();
-//                                    int height = img.getHeight();
-//                                    int pixelStride = planes[0].getPixelStride();
-//                                    int rowStride = planes[0].getRowStride();
-//                                    int rowPadding = rowStride - pixelStride * width;
-//                                    byte[] newData = new byte[width * height * 4];
-//
-//                                    int offset = 0;
-//
-//                                    bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-//                                    ByteBuffer buffer = planes[0].getBuffer();
-//                                    for (int i = 0; i < height; ++i) {
-//                                        for (int j = 0; j < width; ++j) {
-//                                            int pixel = 0;
-//                                            pixel |= (buffer.get(offset) & 0xff) << 16;     // R
-//                                            pixel |= (buffer.get(offset + 1) & 0xff) << 8;  // G
-//                                            pixel |= (buffer.get(offset + 2) & 0xff);       // B
-//                                            pixel |= (buffer.get(offset + 3) & 0xff) << 24; // A
-//                                            bitmap.setPixel(j, i, pixel);
-//                                            offset += pixelStride;
-//                                        }
-//                                        offset += rowPadding;
-//                                    }
-//
-//                                    leftColor.setBackground(new BitmapDrawable(getResources(), bitmap));
-//                                }
-//                            }
-//
-//                            analiseButtonPressed = false;
-//                        img.close();
-//                        Toast.makeText(getApplicationContext(), "Make Photo", Toast.LENGTH_SHORT).show();
-//                }}, null);

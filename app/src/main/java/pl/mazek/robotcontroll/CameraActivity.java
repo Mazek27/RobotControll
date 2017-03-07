@@ -50,6 +50,7 @@ import java.util.List;
 
 public class CameraActivity extends Activity {
 
+    protected boolean checkDone = false;
     protected boolean clicked;
     protected Button captureButton;
     protected ImageReader imageReader;
@@ -394,9 +395,12 @@ public class CameraActivity extends Activity {
 
         }
         hsv[0] = sum/pixels.length;
+        System.out.println(hsv[0] + " " +
+                String.format("%.2g", hsv[1]) + " " +
+                String.format("%.2g", hsv[2]));
 
         //RED
-        if((hsv[0]>0 && hsv[0]<10) ||(hsv[0]>290 && hsv[0]<=360) && hsv[1] > 0.7){
+        if((hsv[0]>0 && hsv[0]<11) ||(hsv[0]>290 && hsv[0]<=360) && hsv[1] > 0.7){
             textView.setText("RED " +
                     hsv[0] + " " +
                     String.format("%.2g", hsv[1]) + " " +
@@ -405,7 +409,7 @@ public class CameraActivity extends Activity {
             hsv[1] = 1;
             hsv[2] = 1;
 
-            return Color.HSVToColor(hsv);
+            return Color.RED;
         } else
         //BLUE
         if((hsv[0]>180 && hsv[0]<255) && hsv[1] > 0.3){
@@ -417,10 +421,10 @@ public class CameraActivity extends Activity {
             hsv[1] = 1;
             hsv[2] = 1;
 
-            return Color.HSVToColor(hsv);
+            return Color.BLUE;
         }else
         //GREEN
-        if((hsv[0]>70 && hsv[0]<150) && hsv[1] > 0.3){
+        if((hsv[0]>75 && hsv[0]<150) && hsv[1] > 0.3){
             textView.setText("GREEN " +
                     hsv[0] + " " +
                     String.format("%.2g", hsv[1]) + " " +
@@ -429,10 +433,10 @@ public class CameraActivity extends Activity {
             hsv[1] = 1;
             hsv[2] = 1;
 
-            return Color.HSVToColor(hsv);
+            return Color.GREEN;
         }else
         //YELLOW
-        if((hsv[0]>45 && hsv[0]<68) && hsv[1] > 0.3){
+        if((hsv[0]>45 && hsv[0]<75) && hsv[1] > 0.3){
             textView.setText("YELLOW " +
                     hsv[0] + " " +
                     String.format("%.2g", hsv[1]) + " " +
@@ -441,7 +445,7 @@ public class CameraActivity extends Activity {
             hsv[1] = 1;
             hsv[2] = 1;
 
-            return Color.HSVToColor(hsv);
+            return Color.YELLOW;
         }else
         //ORANGE
         if((hsv[0]>11 && hsv[0]<45) && hsv[1] > 0.3){
@@ -454,23 +458,18 @@ public class CameraActivity extends Activity {
             hsv[2] = 1;
 
             return Color.HSVToColor(hsv);
-        }else
-        if(hsv[1] < 0.15 && hsv[2] > 0.65) {
-            textView.setText("WHITE " +
-                    hsv[0] + " " +
-                    String.format("%.2g", hsv[1]) + " " +
-                    String.format("%.2g", hsv[2]));
-            hsv[0] = 0;
-            hsv[1] = 0;
-            hsv[2] = 1;
-
-            return Color.HSVToColor(hsv);
         }
-//        } else {
-//            hsv[1] = 1;
-//            hsv[2] = 1;
-//        }
-        return Color.HSVToColor(hsv);
+
+        textView.setText("WHITE " +
+                hsv[0] + " " +
+                String.format("%.2g", hsv[1]) + " " +
+                String.format("%.2g", hsv[2]));
+        hsv[0] = 0;
+        hsv[1] = 0;
+        hsv[2] = 1;
+
+        return Color.WHITE;
+
     }
 
 

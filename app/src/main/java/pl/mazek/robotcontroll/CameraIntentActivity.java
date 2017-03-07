@@ -2,7 +2,9 @@ package pl.mazek.robotcontroll;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -47,6 +49,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Toolbar;
 
@@ -67,6 +70,7 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -75,10 +79,14 @@ import java.util.EmptyStackException;
 import java.util.List;
 import java.util.Random;
 
+import pl.mazek.robotcontroll.Solver.Search;
+
 public class CameraIntentActivity extends CameraActivity implements SensorEventListener {
 
 
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    List<Character> solve;
+
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -88,7 +96,7 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
     }
 
     private int countClick = 0;
-    private ImageView[] imageView;
+    private CImageView[] imageView;
     private GridLayout gridLayout;
 
     /**
@@ -115,12 +123,13 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
     };
 
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_intent);
         gridLayout = (GridLayout) findViewById(R.id.gridLayout);
-        imageView = new ImageView[54];
+        imageView = new CImageView[54];
         int i=0, x, y;
         char[] mChar = {'F','R','B','L','D','U'};
         int r=0,c=0;
@@ -166,11 +175,11 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
                 gl.rowSpec = GridLayout.spec(r+y);
                 gl.width = 30;
                 gl.height = 30;
-                imageView[i] = new ImageView(this);
-                imageView[i].setTag(ch + j);
-                imageView[i].setLayoutParams(gl);
-                imageView[i].setBackgroundColor(Color.rgb(255,0,0));
-                gridLayout.addView(imageView[i]);
+                imageView[i] = new CImageView(this);
+                imageView[i].imageView.setTag(ch + j);
+                imageView[i].imageView.setLayoutParams(gl);
+                imageView[i].imageView.setBackgroundColor(Color.rgb(255,0,0));
+                gridLayout.addView(imageView[i].imageView);
 
                 if(j%3 == 0){
                     y++;
@@ -203,24 +212,98 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
         @Override
         public void onClick(View v) {
             clicked = true;
-            lockFocus();
-            Bitmap mBitmap = mTextureView.getBitmap();
+            if(countClick < 6) {
+                lockFocus();
+                Bitmap mBitmap = mTextureView.getBitmap();
 
 
-
-            int[] color = getColors(mBitmap);
-            int start = countClick == 0 ? 0 : countClick * 8 +countClick;
-            int index = 0;
-            for(int i=start; i<start+8+1; i++){
-                imageView[i].setBackgroundColor(color[index]);
-                index++;
-            }
+                int[] color = getColors(mBitmap);
+                int start = countClick == 0 ? 0 : countClick * 8 + countClick;
+                int index = 0;
+                for (int i = start; i < start + 8 + 1; i++) {
+                    imageView[i].imageView.setBackgroundColor(color[index]);
+                    imageView[i].color = color[index];
+                    index++;
+                }
 
 //            captureButton.setText(String.valueOf(hsv[0]));
-            Log.d("Button", clicked ? "true" : "false");
-            countClick++;
+                Log.d("Button", clicked ? "true" : "false");
+                countClick++;
+            } else {
+                 char[] cubeCoord = new char[54];
+                    for(int i =0; i < 54; i++){
+                        if(imageView[i].color == imageView[4].color)
+                            cubeCoord[i] = 'F';//
+                        else if(imageView[i].color == imageView[4+9].color)
+                            cubeCoord[i] = 'R';//
+                        else if(imageView[i].color == imageView[4+9+9].color)
+                            cubeCoord[i] = 'B';//
+                        else if(imageView[i].color == imageView[4+9+9+9].color)
+                            cubeCoord[i] = 'L';//
+                        else if(imageView[i].color == imageView[4+9+9+9+9].color)
+                            cubeCoord[i] = 'D';
+                        else if(imageView[i].color == imageView[4+9+9+9+9+9].color)
+                            cubeCoord[i] = 'U';//
+                    }
+                    //Log.e("Solve", Search.solution(cubeCoord.toString(), 5, 20, false));
+                String solution = mindfreak(cubeCoord);
+                        //Search.solution(new String(cubeCoord), 20, 5, false);
+
+                TextView cubeView =(TextView) findViewById(R.id.textView8);
+                cubeView.setText(solution);
+                TextView solutionView =(TextView) findViewById(R.id.textView9);
+                solutionView.setText(output(Search.solution(mindfreak(cubeCoord), 20, 5, false)));
+                //checkDone = true;
+
+//                for(char c : output(solution).toCharArray()){
+//                    solve.add(c);
+//                }
+//
+//                checkDone = true;
+
+
+                //dlgAlert.setMessage(Search.solution(cubeCoord.toString(), 5, 20, false));
+
+                }
         }
     };
+
+    private String output(String input){
+        StringBuilder sb = new StringBuilder();
+        char[] c = input.toCharArray();
+
+        for(int i=0; i< c.length; i++){
+            if(c[i] != 32){
+                if(c[i] != 50 && c[i] != 96){
+                    sb.append(c[i]);
+                } else {
+                    if(c[i] == 50)
+                    sb.append(c[i-1]);
+                    else{
+                        sb.append(c[i-1]);
+                        sb.append(c[i-1]);
+                        sb.append(c[i-1]);
+                    }
+
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    public String mindfreak(char[] charArray){
+        StringBuilder sb = new StringBuilder();
+        String s = new String(charArray);
+
+        sb.append(s.substring(45,54));//
+        sb.append(s.substring(9,18));
+        sb.append(s.substring(0,9));
+        sb.append(s.substring(36,45));
+        sb.append(s.substring(27,36));
+        sb.append(s.substring(18,27));
+
+        return sb.toString();
+    }
 
     @Override
     protected void onResume() {
@@ -261,30 +344,43 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.values[0] > 0 && countClick < 6) {
-            Random rnd = new Random();
-            int choose = rnd.nextInt(4) + 1;
-            switch (choose) {
-                case 1: {
-                    leftColor.setBackgroundResource(R.drawable.black);
+        if(checkDone){
+            if (event.values[0] > 0 && solve.size() > 0) {
+                switch (solve.get(0)) {
+                    case 'R': {
+                        leftColor.setBackgroundResource(R.drawable.black);
+                        solve.remove(0);
+                    }
+                    break;
+                    case 'L': {
+                        leftColor.setBackgroundResource(R.drawable.blue);
+                        solve.remove(0);
+                    }
+                    break;
+                    case 'F': {
+                        leftColor.setBackgroundResource(R.drawable.green);
+                        solve.remove(0);
+                    }
+                    break;
+                    case 'D': {
+                        leftColor.setBackgroundResource(R.drawable.red);
+                        solve.remove(0);
+                    }
+                    break;
+                    case 'B': {
+                        leftColor.setBackgroundResource(R.drawable.yellow);
+                        solve.remove(0);
+                    }
+                    break;
+                    case 'U': {
+                        leftColor.setBackgroundResource(R.drawable.white);
+                        solve.remove(0);
+                    }
+                    break;
                 }
-                break;
-                case 2: {
-                    leftColor.setBackgroundResource(R.drawable.blue);
-                }
-                break;
-                case 3: {
-                    leftColor.setBackgroundResource(R.drawable.green);
-                }
-                break;
-                case 4: {
-                    leftColor.setBackgroundResource(R.drawable.red);
-                }
-                break;
             }
-        } else {
-            leftColor.setBackgroundResource(R.drawable.white);
         }
+
 
     }
 

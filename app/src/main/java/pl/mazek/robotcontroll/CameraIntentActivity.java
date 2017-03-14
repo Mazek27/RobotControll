@@ -81,11 +81,15 @@ import java.util.Random;
 
 import pl.mazek.robotcontroll.Solver.Search;
 
+import static pl.mazek.robotcontroll.OpenCv.Main.bitwise;
+import static pl.mazek.robotcontroll.OpenCv.Main.contours;
+import static pl.mazek.robotcontroll.OpenCv.Main.preproc;
+
 public class CameraIntentActivity extends CameraActivity implements SensorEventListener {
 
 
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
-    List<Character> solve;
+    String solve;
 
 
     static {
@@ -112,7 +116,6 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i("OpenCV", "OpenCV loaded successfully");
-                    Mat imageMat=new Mat();
                 } break;
                 default:
                 {
@@ -215,9 +218,18 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
             if(countClick < 6) {
                 lockFocus();
                 Bitmap mBitmap = mTextureView.getBitmap();
+                Mat sourceImage = new Mat(mBitmap.getWidth(), mBitmap.getHeight(),CvType.CV_64FC3);
+                //Utils.bitmapToMat(mBitmap, sourceImage);
+                for(int x=0; x < mBitmap.getWidth(); x++)
+                    for(int y=0; y< mBitmap.getHeight(); y++){
+                        sourceImage.put(x,y,
+                                mBitmap.getPixel(x,y));
+                    }
 
+                Mat binary = preproc(sourceImage);
+                Imgproc.cvtColor(binary, binary, Imgproc.COLOR_GRAY2BGR);
 
-                int[] color = getColors(mBitmap);
+                int[] color = getColors(bitwise(sourceImage, preproc(sourceImage), contours(binary)));
                 int start = countClick == 0 ? 0 : countClick * 8 + countClick;
                 int index = 0;
                 for (int i = start; i < start + 8 + 1; i++) {
@@ -246,20 +258,22 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
                             cubeCoord[i] = 'U';//
                     }
                     //Log.e("Solve", Search.solution(cubeCoord.toString(), 5, 20, false));
-                String solution = mindfreak(cubeCoord);
+                String solution = output(Search.solution(mindfreak(cubeCoord), 20, 5, false));
                         //Search.solution(new String(cubeCoord), 20, 5, false);
 
                 TextView cubeView =(TextView) findViewById(R.id.textView8);
-                cubeView.setText(solution);
+                cubeView.setText(mindfreak(cubeCoord));
                 TextView solutionView =(TextView) findViewById(R.id.textView9);
-                solutionView.setText(output(Search.solution(mindfreak(cubeCoord), 20, 5, false)));
+                solutionView.setText(solution);
                 //checkDone = true;
+                solve = "";
+                for(char c : output(solution).toCharArray()){
+                    solve += c;
+                }
 
-//                for(char c : output(solution).toCharArray()){
-//                    solve.add(c);
-//                }
+                ((ImageView) findViewById(R.id.rightColor)).setBackgroundResource(R.drawable.green);
 //
-//                checkDone = true;
+                checkDone = true;
 
 
                 //dlgAlert.setMessage(Search.solution(cubeCoord.toString(), 5, 20, false));
@@ -274,13 +288,12 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
 
         for(int i=0; i< c.length; i++){
             if(c[i] != 32){
-                if(c[i] != 50 && c[i] != 96){
+                if(c[i] != 50 && c[i] != '\''){
                     sb.append(c[i]);
                 } else {
                     if(c[i] == 50)
-                    sb.append(c[i-1]);
-                    else{
                         sb.append(c[i-1]);
+                    else{
                         sb.append(c[i-1]);
                         sb.append(c[i-1]);
                     }
@@ -312,7 +325,7 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
 
         if (!OpenCVLoader.initDebug()) {
             Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
         } else {
             Log.d("OpenCV", "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
@@ -345,39 +358,47 @@ public class CameraIntentActivity extends CameraActivity implements SensorEventL
     @Override
     public void onSensorChanged(SensorEvent event) {
         if(checkDone){
-            if (event.values[0] > 0 && solve.size() > 0) {
-                switch (solve.get(0)) {
+            if (event.values[0] > 0 && solve.length() > 0) {
+                switch (solve.toCharArray()[0]) {
                     case 'R': {
-                        leftColor.setBackgroundResource(R.drawable.black);
-                        solve.remove(0);
+                        ((TextView) findViewById(R.id.textView7)).setText("R " + solve.toCharArray()[0] + " " + solve.length());
+                        leftColor.setBackgroundResource(R.drawable.orange);
+                        solve = solve.substring(1,solve.length());
                     }
                     break;
                     case 'L': {
+                        ((TextView) findViewById(R.id.textView7)).setText("L " + solve.toCharArray()[0] + " " + solve.length());
                         leftColor.setBackgroundResource(R.drawable.blue);
-                        solve.remove(0);
+                        solve = solve.substring(1,solve.length());
                     }
                     break;
                     case 'F': {
+                        ((TextView) findViewById(R.id.textView7)).setText("F " + solve.toCharArray()[0] + " " + solve.length());
                         leftColor.setBackgroundResource(R.drawable.green);
-                        solve.remove(0);
+                        solve = solve.substring(1,solve.length());
                     }
                     break;
                     case 'D': {
+                        ((TextView) findViewById(R.id.textView7)).setText("D " + solve.toCharArray()[0] + " " + solve.length());
                         leftColor.setBackgroundResource(R.drawable.red);
-                        solve.remove(0);
+                        solve = solve.substring(1,solve.length());
                     }
                     break;
                     case 'B': {
+                        ((TextView) findViewById(R.id.textView7)).setText("B " + solve.toCharArray()[0] + " " + solve.length());
                         leftColor.setBackgroundResource(R.drawable.yellow);
-                        solve.remove(0);
+                        solve = solve.substring(1,solve.length());
                     }
                     break;
                     case 'U': {
+                        ((TextView) findViewById(R.id.textView7)).setText("U " + solve.toCharArray()[0] + " " + solve.length());
                         leftColor.setBackgroundResource(R.drawable.white);
-                        solve.remove(0);
+                        solve = solve.substring(1,solve.length());
                     }
                     break;
                 }
+            } else if(event.values[0] > 0 && solve.length() == 0 ){
+                ((ImageView) findViewById(R.id.rightColor)).setBackgroundResource(R.drawable.red);
             }
         }
 

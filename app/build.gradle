@@ -8,11 +8,39 @@ android {
         minSdkVersion 23
         targetSdkVersion 25
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        jackOptions {
+            enabled true
+        }
     }
+
+//    sourceSets.main.jni.srcDirs = []
+//
+//    task ndkBuild(type: Exec, description: 'Compile JNI source via NDK') {
+//         ndkDir = project.plugins.findPlugin('com.android.application').getNdkFolder()
+//        commandLine "$ndkDir/ndk-build",
+//                'NDK_PROJECT_PATH=build/intermediates/ndk',
+//                'NDK_LIBS_OUT=src/main/jniLibs',
+//                'APP_BUILD_SCRIPT=src/main/jni/Android.mk',
+//                'NDK_APPLICATION_MK=src/main/jni/Application.mk'
+//    }
+//
+//    tasks.withType(JavaCompile) {
+//        compileTask -> compileTask.dependsOn ndkBuild
+//    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8
+    }
+    externalNativeBuild {
+        ndkBuild {
+            path 'src/main/jniLibs/OpenCV.mk'
         }
     }
 }

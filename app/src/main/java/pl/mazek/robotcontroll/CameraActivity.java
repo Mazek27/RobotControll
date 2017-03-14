@@ -37,6 +37,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+
+import pl.mazek.robotcontroll.OpenCv.Color.*;
+import pl.mazek.robotcontroll.OpenCv.Color.Colors.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -369,108 +374,101 @@ public class CameraActivity extends Activity {
         }
     }
 
-    public int[] getColors(Bitmap bitmap){
+    public int[] getColors(byte[] colorIndex){
         int[] color = new int[9];
-        color[0] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.05*bitmap.getHeight()), (TextView) findViewById(R.id.textView1));
-        color[1] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.05*bitmap.getHeight()), (TextView) findViewById(R.id.textView2));
-        color[2] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.05*bitmap.getHeight()), (TextView) findViewById(R.id.textView3));
-        color[3] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.5 *bitmap.getHeight()), (TextView) findViewById(R.id.textView4));
-        color[4] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.5 *bitmap.getHeight()), (TextView) findViewById(R.id.textView5));
-        color[5] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.5 *bitmap.getHeight()), (TextView) findViewById(R.id.textView6));
-        color[6] = avgColor(bitmap, (int) (0.05*bitmap.getWidth()), (int) (0.95*bitmap.getHeight()), (TextView) findViewById(R.id.textView7));
-        color[7] = avgColor(bitmap, (int) (0.5 *bitmap.getWidth()) , (int) (0.95*bitmap.getHeight()), (TextView) findViewById(R.id.textView8));
-        color[8] = avgColor(bitmap, (int) (0.95*bitmap.getWidth()), (int) (0.95*bitmap.getHeight()), (TextView) findViewById(R.id.textView9));
+        for(int i=0; i < 9; i++)
+            color[i] = Color.HSVToColor(pl.mazek.robotcontroll.OpenCv.Color.Colors.bgr2hsv(pl.mazek.robotcontroll.OpenCv.Color.Colors.getColor(colorIndex[i])));
 
         return  color;
     }
 
-    private int avgColor(Bitmap bitmap, int x, int y, TextView textView){
-        int[] pixels = new int[30*30];
-        float[] hsv = new float[3];
-        int sum= 0;
-        bitmap.getPixels(pixels, 0, 30, x-15, y -15, 30, 30);
-        for (int pixel : pixels) {
-            Color.RGBToHSV(Color.red(pixel), Color.green(pixel), Color.blue(pixel), hsv);
-            sum += hsv[0];
-
-        }
-        hsv[0] = sum/pixels.length;
-        System.out.println(hsv[0] + " " +
-                String.format("%.2g", hsv[1]) + " " +
-                String.format("%.2g", hsv[2]));
-
-        //RED
-        if((hsv[0]>0 && hsv[0]<11) ||(hsv[0]>290 && hsv[0]<=360) && hsv[1] > 0.7){
-            textView.setText("RED " +
-                    hsv[0] + " " +
-                    String.format("%.2g", hsv[1]) + " " +
-                    String.format("%.2g", hsv[2]));
-            hsv[0] = 3;
-            hsv[1] = 1;
-            hsv[2] = 1;
-
-            return Color.RED;
-        } else
-        //BLUE
-        if((hsv[0]>180 && hsv[0]<255) && hsv[1] > 0.3){
-            textView.setText("BLUE " +
-                    hsv[0] + " " +
-                    String.format("%.2g", hsv[1]) + " " +
-                    String.format("%.2g", hsv[2]));
-            hsv[0] = 240;
-            hsv[1] = 1;
-            hsv[2] = 1;
-
-            return Color.BLUE;
-        }else
-        //GREEN
-        if((hsv[0]>75 && hsv[0]<150) && hsv[1] > 0.3){
-            textView.setText("GREEN " +
-                    hsv[0] + " " +
-                    String.format("%.2g", hsv[1]) + " " +
-                    String.format("%.2g", hsv[2]));
-            hsv[0] = 120;
-            hsv[1] = 1;
-            hsv[2] = 1;
-
-            return Color.GREEN;
-        }else
-        //YELLOW
-        if((hsv[0]>45 && hsv[0]<75) && hsv[1] > 0.3){
-            textView.setText("YELLOW " +
-                    hsv[0] + " " +
-                    String.format("%.2g", hsv[1]) + " " +
-                    String.format("%.2g", hsv[2]));
-            hsv[0] = 60;
-            hsv[1] = 1;
-            hsv[2] = 1;
-
-            return Color.YELLOW;
-        }else
-        //ORANGE
-        if((hsv[0]>11 && hsv[0]<45) && hsv[1] > 0.3){
-            textView.setText("ORANGE " +
-                    hsv[0] + " " +
-                    String.format("%.2g", hsv[1]) + " " +
-                    String.format("%.2g", hsv[2]));
-            hsv[0] = 30;
-            hsv[1] = 1;
-            hsv[2] = 1;
-
-            return Color.HSVToColor(hsv);
-        }
-
-        textView.setText("WHITE " +
-                hsv[0] + " " +
-                String.format("%.2g", hsv[1]) + " " +
-                String.format("%.2g", hsv[2]));
-        hsv[0] = 0;
-        hsv[1] = 0;
-        hsv[2] = 1;
-
-        return Color.WHITE;
-
-    }
+//    private int avgColor(Bitmap bitmap, int x, int y, TextView textView){
+//        int[] pixels = new int[30*30];
+//        float[] hsv = new float[3];
+//        int sum= 0;
+//        bitmap.getPixels(pixels, 0, 30, x-15, y -15, 30, 30);
+//        for (int pixel : pixels) {
+//            Color.RGBToHSV(Color.red(pixel), Color.green(pixel), Color.blue(pixel), hsv);
+//            sum += hsv[0];
+//
+//        }
+//        hsv[0] = sum/pixels.length;
+//        System.out.println(hsv[0] + " " +
+//                String.format("%.2g", hsv[1]) + " " +
+//                String.format("%.2g", hsv[2]));
+//
+//        //RED
+//        if((hsv[0]>0 && hsv[0]<11) ||(hsv[0]>290 && hsv[0]<=360) && hsv[1] > 0.7){
+//            textView.setText("RED " +
+//                    hsv[0] + " " +
+//                    String.format("%.2g", hsv[1]) + " " +
+//                    String.format("%.2g", hsv[2]));
+//            hsv[0] = 3;
+//            hsv[1] = 1;
+//            hsv[2] = 1;
+//
+//            return Color.RED;
+//        } else
+//        //BLUE
+//        if((hsv[0]>180 && hsv[0]<255) && hsv[1] > 0.3){
+//            textView.setText("BLUE " +
+//                    hsv[0] + " " +
+//                    String.format("%.2g", hsv[1]) + " " +
+//                    String.format("%.2g", hsv[2]));
+//            hsv[0] = 240;
+//            hsv[1] = 1;
+//            hsv[2] = 1;
+//
+//            return Color.BLUE;
+//        }else
+//        //GREEN
+//        if((hsv[0]>75 && hsv[0]<150) && hsv[1] > 0.3){
+//            textView.setText("GREEN " +
+//                    hsv[0] + " " +
+//                    String.format("%.2g", hsv[1]) + " " +
+//                    String.format("%.2g", hsv[2]));
+//            hsv[0] = 120;
+//            hsv[1] = 1;
+//            hsv[2] = 1;
+//
+//            return Color.GREEN;
+//        }else
+//        //YELLOW
+//        if((hsv[0]>45 && hsv[0]<75) && hsv[1] > 0.3){
+//            textView.setText("YELLOW " +
+//                    hsv[0] + " " +
+//                    String.format("%.2g", hsv[1]) + " " +
+//                    String.format("%.2g", hsv[2]));
+//            hsv[0] = 60;
+//            hsv[1] = 1;
+//            hsv[2] = 1;
+//
+//            return Color.YELLOW;
+//        }else
+//        //ORANGE
+//        if((hsv[0]>11 && hsv[0]<45) && hsv[1] > 0.3){
+//            textView.setText("ORANGE " +
+//                    hsv[0] + " " +
+//                    String.format("%.2g", hsv[1]) + " " +
+//                    String.format("%.2g", hsv[2]));
+//            hsv[0] = 30;
+//            hsv[1] = 1;
+//            hsv[2] = 1;
+//
+//            return Color.HSVToColor(hsv);
+//        }
+//
+//        textView.setText("WHITE " +
+//                hsv[0] + " " +
+//                String.format("%.2g", hsv[1]) + " " +
+//                String.format("%.2g", hsv[2]));
+//        hsv[0] = 0;
+//        hsv[1] = 0;
+//        hsv[2] = 1;
+//
+//        return Color.WHITE;
+//
+//    }
 
 
 

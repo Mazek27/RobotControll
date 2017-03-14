@@ -111,6 +111,13 @@
             android:layout_weight="1"
             android:background="@drawable/blue" />
 
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:id="@+id/rightColor"
+            android:layout_weight="1"
+            android:background="@drawable/red" />
+
     </LinearLayout>
 
 </LinearLayout>
